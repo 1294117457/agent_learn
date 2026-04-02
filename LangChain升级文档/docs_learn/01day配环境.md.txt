@@ -1,0 +1,12 @@
+##### nginx
+
+```
+一个server一般监听一个本地端口
+server中多个location 用于转发多个路径到对应proxy_pass
+前端可以止步于请求的路径，
+	在nginx中转发到对应的ip，
+	比如fetch('/api/user')，实际前端没有像某个ip发出请求，
+	只是发出了对应路径api/user的请求，
+	然后被nginx拦截代理到了对应ip
+```
+

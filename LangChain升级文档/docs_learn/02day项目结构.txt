@@ -1,0 +1,62 @@
+##### styles
+
+![](./img/02-1.png)
+
+```
+树形结构
+    page-it/
+    ├── index.scss           (总入口)
+    ├── it-sys.scss          (页面级样式)
+    ├── web-space-home.scss  (页面级样式)
+    └── block/
+        ├── index.scss       (block模块入口)
+        └── resource-chech-table.scss (具体组件样式)
+	单个组件样式在组件的index.scss汇总，页面样式在顶层index汇总
+	现有block接入it-sys下，简介接入顶层index.scss
+	
+	更好的架构，blcok提高一层，在顶层index接入，与页面样式同级，所有页面样式都能用
+        page-it/
+        ├── index.scss              ← 【总入口】统一导入
+        │   ├── @import "./block/index"      ← block 在顶层加载
+        │   ├── @import "./it-sys"
+        │   └── @import "./web-space-home"
+        ├── block/                  ← 【组件库】与页面样式平级
+        │   ├── index.scss
+        │   └── resource-chech-table.scss
+        ├── it-sys.scss             ← 【页面1】使用 block 中的组件
+        └── web-space-home.scss     ← 【页面2】使用 block 中的组件	
+```
+
+```
+import './styles/index.scss';
+    ↓
+【编译时】所有 SCSS 文件合并成一个 CSS
+    ↓
+【运行时】注入全局 <style> 标签
+    ↓
+【结果】所有样式对所有组件都可见
+
+    样式通过import './styles/index.scss';导入了所有的组件，
+    所有组件都可以用所有的样式，
+    实际之前的层架架构只是用于分层，不能用于限制某些样式只用于某个页面
+    更多要根据命名规范区分使用
+```
+
+##### tailwindCss
+
+```
+✅ 快速开发，无需定义样式
+✅ 不需要命名规范
+✅ 类名即代码，直观易懂
+✅ 样式在 HTML 中，改动一目了然
+✅ 学习成本低
+❌ HTML 会充满 class 属性
+❌ 样式分散在各个组件中
+❌ 大项目难以维护
+
+	主要缺点：代码中很多class属性
+	修改属性时，属性随组件分散，难以修改
+	
+
+```
+
