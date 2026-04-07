@@ -13,6 +13,13 @@ import {z} from 'zod'
  * 然后换一个 `thread_id` 验证隔离效果
  */
 
+
+/**
+ * 在工具中可以传入state来获取上下文，修改上下文，
+ * 同时还可以在tool中传入runtime，使用其中的context来实现更多的操作
+ * 
+ * 结合state,Runnable和middleware，tool可以更完善精准的使用每次invoke
+ */
 const model = new ChatOpenAI({
   apiKey: process.env.QWEN3_API_KEY,
   configuration: {
@@ -20,7 +27,20 @@ const model = new ChatOpenAI({
   },
   model: process.env.QWEN_CHAT_MODEL
 })
+/**
+ * MemorySaver  
+ * langgraph 提供的一个简单的内存保存器实现，
+ * 在每次invoke时自动拦截存储
+ * 主要使用deleteThread去除无用上下文
+ */
 
+/**
+ * state，是当前invoke的messages上下文，
+ * 如果没有MemorySaver的实现，state每次都是空的，
+ * 除了每次invoke自动获取state
+ * 还可以在tool和middleware中手动获取和修改state，
+ * 
+ */
 const checkpointer = new MemorySaver()
 
 const agent = createAgent({

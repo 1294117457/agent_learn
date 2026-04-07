@@ -23,6 +23,9 @@ const getWeatherTool = tool(
     })
   }
 )
+/**
+ * model.bindTools
+ */
 //绑定工具到模型
 const modelWithTools = new ChatOpenAI({
   apiKey: process.env.QWEN3_API_KEY,
