@@ -59,20 +59,25 @@ async function validateNode(state:S):Promise<Partial<S>>{
   
   return { missingInfo: reply.missing }
 }
-
+/**
+ * interrupt(question)接收下次用户的Command，
+ * 然后和missingInfo一起打包进入全局state.messages
+ * 供后续使用
+ * 
+ * 总体作用是中断graph并接收用户command
+ * 
+ */
 async function askForMoreNode(state:S):Promise<Partial<S>>{
   const question = `材料信息不完整，缺少：${state.missingInfo.join('、')}。请补充这些信息：`
   console.log('  → ask:向用户提问:', question)
   
   const userAnswer = interrupt(question)
-  
-  // 核心修改2：将AI的提问和用户的自然语言回答，存入多轮对话数组
-  return {
-    messages: [
+  const result = [
       new AIMessage(question),
-      new HumanMessage(String(userAnswer)) // 用户的自然语言补充被永久记录
-    ],
-  }
+      new HumanMessage(String(userAnswer)) 
+  ]
+  
+  return {messages: result}
 }
 
 async function generateNode(state:S):Promise<Partial<S>>{
@@ -94,6 +99,7 @@ async function generateNode(state:S):Promise<Partial<S>>{
   return { messages: [reply] }
 }
 function checkRoute(state:S){
+  console.log('state结构：', state)
   return state.missingInfo.length===0?'generate':'ask'
 }
 

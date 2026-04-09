@@ -10,6 +10,7 @@ import { HumanMessage, AIMessage  } from '@langchain/core/messages'
 
 // 显式的入口派发节点（无实际状态修改，仅作路由前置占位）
 function dispatchNode(state: ApplyStateType): Partial<ApplyStateType> {
+  console.log("--apply:dispatchSTART")
   return {}
 }
 
@@ -19,6 +20,7 @@ function dispatchNode(state: ApplyStateType): Partial<ApplyStateType> {
  * send并行执行
  */
 function dispatchRoute(state:ApplyStateType){
+  console.log("--apply:dispatchRoute")
   const checks = ['policy_match', 'format_check', 'time_validity']
   return checks.map(checkType=>new Send('runCheck',{
     documentText: state.documentText,
@@ -31,6 +33,8 @@ function dispatchRoute(state:ApplyStateType){
  * @returns 
  */
 async function runCheckNode(state:CheckTaskStateType):Promise<Partial<ApplyStateType>>{
+  console.log("--apply:runCheckNode")
+
   const prompts:Record<string,string>={
     policy_match: `检查这份材料是否符合推免加分政策（50字以内）：${state.documentText}`,
     format_check: `检查这份材料的格式是否完整（包含赛事名称/等级/时间）（50字以内）：${state.documentText}`,
@@ -46,6 +50,8 @@ async function runCheckNode(state:CheckTaskStateType):Promise<Partial<ApplyState
  * 最后总结的Node
  */
 async function summarizeNode(state:ApplyStateType):Promise<Partial<ApplyStateType>>{
+  console.log("--apply:summarizeNode")
+
   const allResults = state.checkResults.join('\n')
   const summary = await model.invoke(
     [new HumanMessage(`综合以下检查结果，给出最终评估意见（100字以内）：\n${allResults}`),]
@@ -60,3 +66,4 @@ export const applySubgraph = new StateGraph(ApplyState)
   .addConditionalEdges('dispatch', dispatchRoute) // 3. 将包含 Send 的路由挂载在节点上
   .addEdge('runCheck', 'summarize')
   .addEdge('summarize', END)
+  .compile()

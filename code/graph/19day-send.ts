@@ -5,6 +5,10 @@ import { ChatOpenAI } from '@langchain/openai'
 import { HumanMessage, AIMessage, BaseMessage } from '@langchain/core/messages'
 import { z } from 'zod'
 
+/**
+ * 使用send实现并行node
+ */
+
 const MainState = Annotation.Root({
   ...MessagesAnnotation.spec,
   documentText:Annotation<string>({
@@ -66,11 +70,15 @@ async function summarizeNode(state:MainS):Promise<Partial<MainS>>{
   )
   return {messages:[summary]}
 }
-
+function dispatchNode(state: MainS): Partial<MainS> {
+  return {}
+}
 const graph = new StateGraph(MainState)
+  .addNode('dispatch', dispatchNode)      // 1. 显式注册起点分发节点
   .addNode('runCheck', runCheckNode)      // 并行执行节点
   .addNode('summarize', summarizeNode)    // 汇总节点
-  .addConditionalEdges(START, dispatchChecks) 
+  .addEdge(START, 'dispatch')             // 2. 规范的 START 到 节点 的连线
+  .addConditionalEdges('dispatch', dispatchChecks) // 3. 将包含 Send 的路由挂载在节点上
   .addEdge('runCheck', 'summarize')
   .addEdge('summarize', END)
 

@@ -21,7 +21,7 @@ const intentModel = model.withStructuredOutput(
  * 无状态
  * 而agent或graph的invoke，有对应state的传入和更新
  */
-async function classifyNode(state: typeof MessagesAnnotation.State): Promise<string> {
+async function classifyNode(state: typeof MessagesAnnotation.State){
   const lastMsg = state.messages.at(-1)!
   const result = await intentModel.invoke([
     new SystemMessage('判断用户意图：consult=咨询问题,apply=申请表单,other=其他'),
