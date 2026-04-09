@@ -3,7 +3,12 @@ import { StateGraph, MessagesAnnotation, Annotation, START, END } from '@langcha
 import { ChatOpenAI } from '@langchain/openai'
 import { HumanMessage, AIMessage, SystemMessage,BaseMessage } from '@langchain/core/messages'
 import { z } from 'zod'
-
+/**
+ * Annotation，
+ * Annotation.Root定义state
+ * Annotation.reducer定义reducer来复用
+ * 
+ */
 const AppState = Annotation.Root({
   messages: Annotation<BaseMessage[]>({
     reducer: (old, x) => [...(old ?? []), ...(x ?? [])],
@@ -19,10 +24,14 @@ const AppState = Annotation.Root({
   }),
   confidence:Annotation<'high'|'medium'|'low'>({
     reducer:(_,x)=>x,
-    default:()=>'low' as const
+    default:()=>'low' as const  //as const 断言为字面量类型，避免被推断为宽泛的字符串类型
   })
 })
-
+/**
+ * Annotation创建的是一个state对象，后续传入graph使用的
+ * 定义node时要用到state类型
+ *  通过LangGraph封装的方法AppState.State提取state的类型
+ */
 type AppStateType = typeof AppState.State
 
 const model = new ChatOpenAI({
@@ -96,7 +105,7 @@ function routeIntent(state:AppStateType){
  *  根据路由返回的node，选择下一步用哪个node
  * 路由返回的route和addNode名称能直接对上，就可以省去第三个mapping参数
  */
-const graph = new StateGraph(AppState)
+const graph = new StateGraph(AppState)//传入定义好的state类型
   .addNode('classify', classifyNode)
   .addNode('consult', consultNode)
   .addNode('apply', applyNode)

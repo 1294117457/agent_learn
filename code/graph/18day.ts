@@ -4,7 +4,10 @@ import { Command, MemorySaver } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
 import { HumanMessage, AIMessage, BaseMessage } from '@langchain/core/messages'
 import { z } from 'zod'
-
+/**
+ * 使用interrupt和command
+ * 实现HITL
+ */
 const AppState=Annotation.Root({
   messages: Annotation<BaseMessage[]>({
     reducer: (old, x) => [...(old ?? []), ...(x ?? [])],
@@ -13,11 +16,7 @@ const AppState=Annotation.Root({
   missingInfo: Annotation<string[]>({
     reducer: (_, x) => x,
     default: () => [],
-  }),
-  supplemented:Annotation<string>({
-    reducer:(_,x)=>x,
-    default:()=> '',
-  }),
+  })
 })
 
 type S = typeof AppState.State
@@ -35,38 +34,64 @@ const validateModel = model.withStructuredOutput(
     missing:z.array(z.string()),
   })
 )
-
+/**
+ * 每次validate将HumanMessage拼接起来
+ * 校验结果覆盖state.missingInfo
+ */
 async function validateNode(state:S):Promise<Partial<S>>{
-  const userMsg = state.messages.find(m=>m instanceof HumanMessage)!
-  const messages=[new HumanMessage(`判断以下材料描述是否完整（需包含：赛事名称、奖项等级、时间、申请人角色）：${userMsg?.content}`)]
+  // 核心修改1：提取用户在多轮对话中说的所有的内容（拼接起来）
+  const allUserText = state.messages
+    .filter(m => m instanceof HumanMessage)
+    .map(m => m.content)
+    .join('\n');
+
+  const messages=[new HumanMessage(`
+    判断以下材料描述是否完整（需包含：赛事名称、奖项等级、时间、申请人角色）。
+    注意：
+    1. 赛事名称允许使用简称（如“挑战杯”、“互联网+”、“国创”等），只要提到了即可，不要强求全称。
+    
+    材料信息：\n${allUserText}
+  `)]
+
   const reply = await validateModel.invoke(messages)
-  console.log(' validate: 输入内容:', messages)
-  console.log(' validate: 返回内容:', reply)
-  return {missingInfo:reply.missing}
+  console.log(' validate: 当前收集到的完整信息:', allUserText.replace(/\n/g, ' '))
+  console.log(' validate: 依然缺失:', reply.missing)
+  
+  return { missingInfo: reply.missing }
 }
 
 async function askForMoreNode(state:S):Promise<Partial<S>>{
   const question = `材料信息不完整，缺少：${state.missingInfo.join('、')}。请补充这些信息：`
   console.log('  → ask:向用户提问:', question)
+  
   const userAnswer = interrupt(question)
+  
+  // 核心修改2：将AI的提问和用户的自然语言回答，存入多轮对话数组
   return {
-    supplemented:String(userAnswer),
-    messages:[new AIMessage(`好的，已记录您补充的信息：${userAnswer}`)],
+    messages: [
+      new AIMessage(question),
+      new HumanMessage(String(userAnswer)) // 用户的自然语言补充被永久记录
+    ],
   }
 }
 
 async function generateNode(state:S):Promise<Partial<S>>{
-  const userMsg=state.messages.find(m=>m instanceof HumanMessage)!
-  const extra = state.supplemented?`\n补充信息:${state.supplemented}`:''
+  // 核心修改3：生成时，同样参考用户补充的所有信息
+  const allUserText = state.messages
+    .filter(m => m instanceof HumanMessage)
+    .map(m => m.content)
+    .join('\n');
+
   const messages = [new HumanMessage(`
-      根据以下材料信息，生成申请表单草稿：
-      原始描述：${userMsg.content}${extra}
-      请列出：1.申请加分类别 2.预计分值 3.需要提交的材料
+      根据以下多轮补充的材料信息，整理生成最终的申请表单草稿：
+      材料信息：${allUserText}
+      
+      请列出：1.赛事名称 2.申请加分类别 3.时间 4.角色。
       `)]
+      
   const reply = await model.invoke(messages)
-  console.log('generate:传入内容', messages)
-  console.log('generate:返回内容', reply.content.slice(0,50))
-  return {messages:[reply]}
+  console.log('generate:成功生成草稿！：', reply.content)
+  return { messages: [reply] }
 }
 function checkRoute(state:S){
   return state.missingInfo.length===0?'generate':'ask'
@@ -97,11 +122,25 @@ const result = await app.invoke(
   threadConfig
 )
 await new Promise(r=>setTimeout(r,5000))
-
-
+/**
+ * 当前状态是否interrupt
+ * 可以通过state.next查看是否为空来判断
+ */
+const curState = await app.getState(threadConfig)
+console.log('==当前状态==:',curState)
 
 const result2 = await app.invoke(
-  new Command({ resume: '全国二等奖，2024年6月，我是队长' }),
+  new Command({ resume: '我在2024年3月参加的比赛' }),
   threadConfig
 )
-console.log('==最终申请草稿==:',result2)
+
+await new Promise(r=>setTimeout(r,5000))
+
+
+
+const result3 = await app.invoke(
+  new Command({ resume: '我作为队长获得全国二等奖，' }),
+  threadConfig
+)
+
+console.log('==最终申请草稿==:',result3)

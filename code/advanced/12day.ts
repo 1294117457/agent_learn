@@ -7,7 +7,6 @@ import { HumanMessage, SystemMessage, ToolMessage, trimMessages } from '@langcha
 import { tool } from "@langchain/core/tools"
 import { z } from 'zod'
 import type { RunnableConfig } from '@langchain/core/runnables'
-import { create } from 'node:domain'
 
 /**
  * 模拟DB和config

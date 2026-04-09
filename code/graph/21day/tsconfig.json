@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",           // 编译目标版本，Node.js 18+ 完美支持 ES2022
+    "module": "ESNext",           // 使用现代的 ES Modules (import/export)
+    "moduleResolution": "node",   // 模块解析策略，Node 专属
+    "strict": true,               // 开启严格类型检查（强烈建议）
+    "esModuleInterop": true,      // 允许兼容引入 CommonJS 模块
+    "skipLibCheck": true,         // 跳过 node_modules 里第三方库的类型检查，提升编译速度
+    
+    // 路径别名配置
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*", "main.ts"] // 指定需要编译的文件范围
+}
