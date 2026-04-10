@@ -1,4 +1,4 @@
-import { app } from "./src/subgraphs/mainGraph";
+import { app } from "./src/agents/mainGraph";
 import { HumanMessage } from "@langchain/core/messages";
 import { Command } from "@langchain/langgraph";
 
